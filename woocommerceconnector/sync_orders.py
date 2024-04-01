@@ -216,9 +216,10 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "taxes_and_charges": tax_rules,
             "customer_address": billing_address,
             "shipping_address_name": shipping_address,
-            "transaction_date": woocommerce_order.get("date_paid")[:10],
             "posting_date": woocommerce_order.get("date_created")[:10]          # pull posting date from WooCommerce
         })
+        if woocommerce_order.get("date_paid"):
+            so.transaction_date = woocommerce_order.get("date_paid")[:10],
         so.flags.ignore_mandatory = True
 
         # alle orders in ERP = submitted
