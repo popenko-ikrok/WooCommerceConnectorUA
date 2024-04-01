@@ -40,7 +40,7 @@ def sync_woocommerce_orders():
                             make_woocommerce_log(title=e.message, status="Error", method="sync_woocommerce_orders", message=frappe.get_traceback(),
                                 request_data=woocommerce_order, exception=True)
             # close this order as synced
-            close_synced_woocommerce_order(woocommerce_order.get("id"))
+            # close_synced_woocommerce_order(woocommerce_order.get("id"))
                 
 def get_woocommerce_order_status_for_import():
     status_list = []
@@ -216,9 +216,9 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "taxes_and_charges": tax_rules,
             "customer_address": billing_address,
             "shipping_address_name": shipping_address,
+            "transaction_date": woocommerce_order.get("date_paid")[:10],
             "posting_date": woocommerce_order.get("date_created")[:10]          # pull posting date from WooCommerce
         })
-
         so.flags.ignore_mandatory = True
 
         # alle orders in ERP = submitted
@@ -407,7 +407,7 @@ def update_taxes_with_shipping_lines(taxes, shipping_lines, woocommerce_settings
 
 
 def get_shipping_account_head(shipping):
-        shipping_title = shipping.get("method_title").encode("utf-8")
+        shipping_title = shipping.get("method_title")
 
         shipping_account =  frappe.db.get_value("woocommerce Tax Account", \
                 {"parent": "WooCommerce Config", "woocommerce_tax": shipping_title}, "tax_account")
@@ -419,7 +419,7 @@ def get_shipping_account_head(shipping):
 
 
 def get_tax_account_head(tax):
-    tax_title = tax.get("name").encode("utf-8") or tax.get("method_title").encode("utf-8")
+    tax_title = tax.get("name") or tax.get("method_title")
 
     tax_account =  frappe.db.get_value("woocommerce Tax Account", \
         {"parent": "WooCommerce Config", "woocommerce_tax": tax_title}, "tax_account")
@@ -451,4 +451,4 @@ def close_synced_woocommerce_order(wooid):
             
     except requests.exceptions.HTTPError as e:
         make_woocommerce_log(title=e.message, status="Error", method="close_synced_woocommerce_order", message=frappe.get_traceback(),
-            request_data=woocommerce_order, exception=True)
+            exception=True)
