@@ -37,7 +37,7 @@ def sync_woocommerce_orders():
                         if e.args and e.args[0] and e.args[0].startswith("402"):
                             raise e
                         else:
-                            make_woocommerce_log(title=e.message, status="Error", method="sync_woocommerce_orders", message=frappe.get_traceback(),
+                            make_woocommerce_log(title=str(e), status="Error", method="sync_woocommerce_orders", message=frappe.get_traceback(),
                                 request_data=woocommerce_order, exception=True)
             # close this order as synced
             # close_synced_woocommerce_order(woocommerce_order.get("id"))
@@ -196,6 +196,8 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             tax_rules = tax_rules[0]['tax_rule']
         else:
             tax_rules = ""
+
+        td =  woocommerce_order.get("date_paid", "")[:10] if woocommerce_order.get("date_paid") else nowdate()
         so = frappe.get_doc({
             "doctype": "Sales Order",
             "naming_series": woocommerce_settings.sales_order_series or "SO-woocommerce-",
@@ -204,6 +206,7 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "customer": customer,
             "customer_group": woocommerce_settings.customer_group,  # hard code group, as this was missing since v12
             "delivery_date": nowdate(),
+            "due_date": nowdate(),
             "company": woocommerce_settings.company,
             "selling_price_list": woocommerce_settings.price_list,
             "ignore_pricing_rule": 1,
@@ -216,24 +219,24 @@ def create_sales_order(woocommerce_order, woocommerce_settings, company=None):
             "taxes_and_charges": tax_rules,
             "customer_address": billing_address,
             "shipping_address_name": shipping_address,
-            "posting_date": woocommerce_order.get("date_created")[:10]          # pull posting date from WooCommerce
+            "posting_date": woocommerce_order.get("date_created", "")[:10],
+            "transaction_date": td
         })
-        if woocommerce_order.get("date_paid"):
-            so.transaction_date = woocommerce_order.get("date_paid")[:10],
+       
         so.flags.ignore_mandatory = True
 
         # alle orders in ERP = submitted
-        so.save(ignore_permissions=True)
-        so.submit()
-        #if woocommerce_order.get("status") == "on-hold":
-        #    so.save(ignore_permissions=True)
-        #elif woocommerce_order.get("status") in ("cancelled", "refunded", "failed"):
-        #    so.save(ignore_permissions=True)
-        #    so.submit()
-        #    so.cancel()
-        #else:
-        #    so.save(ignore_permissions=True)
-        #    so.submit()
+        # so.save(ignore_permissions=True)
+        # so.submit()
+        if woocommerce_order.get("status") == "on-hold":
+           so.save(ignore_permissions=True)
+        elif woocommerce_order.get("status") in ("cancelled", "refunded", "failed"):
+           so.save(ignore_permissions=True)
+           so.submit()
+           so.cancel()
+        else:
+           so.save(ignore_permissions=True)
+           so.submit()
 
     else:
         so = frappe.get_doc("Sales Order", so)
