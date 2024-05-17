@@ -29,6 +29,8 @@ def sync_woocommerce_items(warehouse, woocommerce_item_list):
     for woocommerce_item in get_woocommerce_items():
         try:
             make_item(warehouse, woocommerce_item, woocommerce_item_list)
+            make_woocommerce_log(title="{}".format(woocommerce_item.get("id")), status="Success", method="make_item",
+                message= "Fetched!", request_data=woocommerce_item ,exception=False)
 
         except woocommerceError as e:
             make_woocommerce_log(title="{0}".format(e), status="Error", method="sync_woocommerce_items", message=frappe.get_traceback(),
